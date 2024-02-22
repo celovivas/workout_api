@@ -1,12 +1,20 @@
 from typing import Annotated
 from pydantic import BaseModel, Field, PositiveFloat
 
-from workout_api.contrib.schemas import BaseSchema
+from workout_api.contrib.schemas import BaseSchema, OutMixin
 
 class Atleta(BaseSchema):
     nome: Annotated[str, Field(description='Nnome do atleta', example='Joao', max_length=50)]
     cpf: Annotated[str, Field(description='CPF do atleta', example='11122233221', max_length=11)]
-    idade: Annotated[int, Field(description='CPF do atleta', example=25, max_digits=3)
-    peso: Annotated[PositiveFloat, Field(description='Peso do atleta', example=67.5, max=300)]
-    altura: Annotated[PositiveFloat, Field(description='Altura do atleta', example=1.75, max=3)]
+    idade: Annotated[int, Field(description='Idade do atleta', example=25, ge=1,le=200)]
+    peso: Annotated[PositiveFloat, Field(description='Peso do atleta', example=95.5, ge=20, le=200)]
+    altura: Annotated[PositiveFloat, Field(description='Altura do atleta', example=1.75, ge=0.5, le=3.0)]
     sexo: Annotated[str, Field(description='Sexo do atleta', example='M', max_length=1)]
+
+
+class AtletaIn(Atleta):
+    pass
+
+
+class AtletaOut(Atleta, OutMixin):
+    pass

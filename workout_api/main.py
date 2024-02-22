@@ -1,6 +1,9 @@
 from fastapi import FastAPI
+from workout_api.routers import api_router
 
 app = FastAPI(title='Workout Api - Nome da nossa app')
+
+app.include_router(api_router)
 
 # Não vai precisar mais pois os parametros estão sendo setados no start da aplicação
 # no comando que está no run do Makefile
