@@ -19,5 +19,6 @@ class AtletaModel(BaseModel):
     categoria: Mapped['CategoriaModel'] = relationship(back_populates='atleta')
     categoria_id: Mapped[int] = mapped_column(ForeignKey('categoria.pk_id'))
 
-    centroTreinamento: Mapped['CentroTreinamentoModel'] = relationship(back_populates='atleta')
-    centroTreinamento_id: Mapped[int] = mapped_column(ForeignKey('centro_treinamento.pk_id'))
+    # Atributos com o mesmo nome do banco
+    centro_treinamento: Mapped['CentroTreinamentoModel'] = relationship(back_populates='atleta')
+    centro_treinamento_id: Mapped[int] = mapped_column(ForeignKey('centro_treinamento.pk_id'))
