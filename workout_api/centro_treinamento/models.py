@@ -11,6 +11,7 @@ class CentroTreinamentoModel(BaseModel):
     nome: Mapped[str] = mapped_column(String(20), unique=True, nullable=False)
     endereco: Mapped[str] = mapped_column(String[60], nullable=False)
     proprietario: Mapped[str] = mapped_column(String[30], nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, default=datetime.now())
     atleta: Mapped['AtletaModel'] = relationship(back_populates='centro_treinamento')
     # proprietario: Mapped[str] = mapped_column(String[30], nullable=False)
     # proprietario: Mapped['AtletaModel'] = relationship(back_populates='centro_treinamento')
