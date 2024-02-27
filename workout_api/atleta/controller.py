@@ -3,8 +3,9 @@ from uuid import uuid4
 from fastapi import APIRouter, Body, status, HTTPException
 from pydantic import UUID4
 from workout_api.atleta.models import AtletaModel
-from workout_api.atleta.schemas import Atleta, AtletaIn, AtletaOut, AtletaUpdate
+from workout_api.atleta.schemas import Atleta, AtletaIn, AtletaOut, AtletaOutResumido, AtletaUpdate
 from sqlalchemy.future import select
+from sqlalchemy import and_, or_
 from workout_api.categorias.models import CategoriaModel
 from workout_api.centro_treinamento.models import CentroTreinamentoModel
 from workout_api.contrib.repository.dependencies import DatabaseDependecy
@@ -12,46 +13,36 @@ from workout_api.contrib.repository.dependencies import DatabaseDependecy
 router = APIRouter()
 
 
-async def verificaCPFAtleta(db_session: DatabaseDependecy, atleta_in: AtletaIn) -> AtletaModel:
-    atleta: AtletaModel = (await db_session.execute(select(AtletaModel).filter_by(cpf=atleta_in.cpf))).scalars().first()
-    if atleta:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"CPF {atleta_in.cpf} já cadastrado.")
-    return atleta
 
-async def getAtletaById(db_session: DatabaseDependecy, id: UUID4) -> AtletaModel:
-    atleta: AtletaModel = (await db_session.execute(select(AtletaModel).filter_by(id=id))).scalars().first()
-    if not atleta:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Atleta com id {id} não encontrado.")
-    return atleta
-
-async def getCategoria(db_session: DatabaseDependecy, atleta_in: AtletaIn) -> CategoriaModel:
-    categoria = (await db_session.execute(select(CategoriaModel).filter_by(nome=atleta_in.categoria.nome))).scalars().first()
-    if not categoria:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Categoria {atleta_in.categoria.nome} não encontrada.")
-    print(f"categoria -->  {categoria.__dict__}")
-    return categoria
-
-async def getCentroTreinamento(db_session: DatabaseDependecy, atleta_in: AtletaIn) -> CentroTreinamentoModel:
-    centro_treinamento = (await db_session.execute(select(CentroTreinamentoModel).filter_by(nome=atleta_in.centro_treinamento.nome))).scalars().first()
-    if not centro_treinamento:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Centro de Treinamento {atleta_in.centro_treinamento.nome} não encontrado.")
-    print(f"Centro de Treinamento -->  {centro_treinamento.__dict__}")
-    return centro_treinamento
 
 
 @router.get(
         path='/', 
         summary="Consultar Totos os atletas", 
         status_code=status.HTTP_200_OK,
-        response_model=list[AtletaOut])
-async def getAllAtletas(db_session: DatabaseDependecy) -> list[AtletaOut]:
-    atletas: list[AtletaOut] = (await db_session.execute(select(AtletaModel))).scalars().all()
+        response_model=list[AtletaOutResumido])
+async def getAllAtletas(db_session: DatabaseDependecy) -> list[AtletaOutResumido]:
+    atletas: list[AtletaOutResumido] = (await db_session.execute(select(AtletaModel))).scalars().all()
     print(atletas)
-    # breakpoint()
-    # Funcao que serializa os dados. Pega de model e converte em schema. Ele foi descontinuado. Utilizar agora o model_validate
+    # Funcao que serializa os dados. Pega de model e converte em schema. Ela foi descontinuado. Utilizar agora o model_validate
     # return AtletaOut.from_orm()
+    # neste caso, ele faz um for transformando cada atleta do atletaModel em um Atletaou (Transforma um model em um schema)
+    return [AtletaOut.model_validate(atleta) for atleta in atletas]
 
-# neste caso, ele faz um for transformando cada atleta do atletaModel em um Atletaou (Transforma um model em um schema)
+
+
+@router.get(
+        path='/filter', 
+        summary="Consultar utilizando query params", 
+        status_code=status.HTTP_200_OK,
+        response_model=list[AtletaOut])
+async def getAllAtletasById(db_session: DatabaseDependecy, nome: str = "", cpf: str = "") -> list[AtletaOut]:
+    atletas: list[AtletaOut] = (await db_session.execute(select(AtletaModel).filter(
+        and_(
+            AtletaModel.nome.like('%'+nome+'%'),
+            AtletaModel.cpf.like('%'+cpf+'%')
+            )
+        ))).scalars().all()
     return [AtletaOut.model_validate(atleta) for atleta in atletas]
 
 
@@ -66,6 +57,7 @@ async def getAllAtletasById(id: UUID4, db_session: DatabaseDependecy) -> list[At
     if not atleta:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Atleta não encontrado no id: {id}")
     return atleta
+
 
 
 @router.post(
@@ -150,3 +142,36 @@ async def getAllAtletasById(id: UUID4, db_session: DatabaseDependecy) -> None:
             detail=f"Ocorreu um erro: {ex.__cause__}"
         )
     return atleta_banco
+
+
+
+
+
+
+# Métodos de validação.
+# TODO Criar classe de serviço e refatorar. Colocar regras de negócio, inclusive os métodos abaixo na classe de servico
+async def verificaCPFAtleta(db_session: DatabaseDependecy, atleta_in: AtletaIn) -> AtletaModel:
+    atleta: AtletaModel = (await db_session.execute(select(AtletaModel).filter_by(cpf=atleta_in.cpf))).scalars().first()
+    if atleta:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"CPF {atleta_in.cpf} já cadastrado.")
+    return atleta
+
+async def getAtletaById(db_session: DatabaseDependecy, id: UUID4) -> AtletaModel:
+    atleta: AtletaModel = (await db_session.execute(select(AtletaModel).filter_by(id=id))).scalars().first()
+    if not atleta:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Atleta com id {id} não encontrado.")
+    return atleta
+
+async def getCategoria(db_session: DatabaseDependecy, atleta_in: AtletaIn) -> CategoriaModel:
+    categoria = (await db_session.execute(select(CategoriaModel).filter_by(nome=atleta_in.categoria.nome))).scalars().first()
+    if not categoria:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Categoria {atleta_in.categoria.nome} não encontrada.")
+    print(f"categoria -->  {categoria.__dict__}")
+    return categoria
+
+async def getCentroTreinamento(db_session: DatabaseDependecy, atleta_in: AtletaIn) -> CentroTreinamentoModel:
+    centro_treinamento = (await db_session.execute(select(CentroTreinamentoModel).filter_by(nome=atleta_in.centro_treinamento.nome))).scalars().first()
+    if not centro_treinamento:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Centro de Treinamento {atleta_in.centro_treinamento.nome} não encontrado.")
+    print(f"Centro de Treinamento -->  {centro_treinamento.__dict__}")
+    return centro_treinamento
