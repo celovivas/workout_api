@@ -2,6 +2,7 @@ from datetime import datetime
 from uuid import uuid4
 from fastapi import APIRouter, Body, status, HTTPException
 from pydantic import UUID4
+import sqlalchemy
 from workout_api.atleta.models import AtletaModel
 from workout_api.atleta.schemas import Atleta, AtletaIn, AtletaOut, AtletaOutResumido, AtletaUpdate
 from sqlalchemy.future import select
@@ -91,6 +92,12 @@ async def post(
         db_session.add(atleta_model)
         await db_session.commit()
     except Exception as ex:
+        if isinstance(sqlalchemy.exc.IntegrityError, ex):
+            raise HTTPException(
+                status_code=status.HTTP_303_SEE_OTHER,
+                detail=f"Já existe um atleta cadastrado com o cpf: {atleta_model.cpf}"
+            )
+
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Ocorreu um erro: {ex.__cause__}"
