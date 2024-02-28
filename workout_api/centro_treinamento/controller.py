@@ -5,7 +5,8 @@ from pydantic import UUID4
 from workout_api.centro_treinamento.models import CentroTreinamentoModel
 from workout_api.centro_treinamento.schemas import CentroTreinamentoIn, CentroTreinamentoOut
 from sqlalchemy.future import select
-
+from fastapi_pagination import Page
+from fastapi_pagination.ext.sqlalchemy import paginate 
 from workout_api.contrib.repository.dependencies import DatabaseDependecy
 
 router = APIRouter()
@@ -37,9 +38,9 @@ async def post(
         path='/', 
         summary="Consultar todos os os centros de treinamento", 
         status_code=status.HTTP_200_OK,
-        response_model=list[CentroTreinamentoOut])
-async def getAllCentrosTreinamento(db_session: DatabaseDependecy) -> list[CentroTreinamentoOut]:
-    cts: list[CentroTreinamentoOut] = (await db_session.execute(select(CentroTreinamentoModel))).scalars().all()
+        response_model=Page[CentroTreinamentoOut])
+async def getAllCentrosTreinamento(db_session: DatabaseDependecy) -> Page[CentroTreinamentoOut]:
+    cts =  await paginate(db_session, select(CentroTreinamentoModel).order_by(CentroTreinamentoModel.nome))
     print(cts)
     return cts
 

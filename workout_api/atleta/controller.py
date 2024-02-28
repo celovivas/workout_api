@@ -10,25 +10,35 @@ from sqlalchemy import and_, or_
 from workout_api.categorias.models import CategoriaModel
 from workout_api.centro_treinamento.models import CentroTreinamentoModel
 from workout_api.contrib.repository.dependencies import DatabaseDependecy
+from fastapi_pagination import Page
+from fastapi_pagination.ext.sqlalchemy import paginate 
 
 router = APIRouter()
-
-
-
 
 
 @router.get(
         path='/', 
         summary="Consultar Totos os atletas", 
         status_code=status.HTTP_200_OK,
-        response_model=list[AtletaOutResumido])
-async def getAllAtletas(db_session: DatabaseDependecy) -> list[AtletaOutResumido]:
-    atletas: list[AtletaOutResumido] = (await db_session.execute(select(AtletaModel))).scalars().all()
+        response_model=Page[AtletaOutResumido])
+async def getAllAtletas(db_session: DatabaseDependecy) -> Page[AtletaOutResumido]:
+    # atletas: list[AtletaOutResumido] = (await db_session.execute(select(AtletaModel))).scalars().all()
+    atletas =  await paginate(db_session, select(AtletaModel).order_by(AtletaModel.nome))
     print(atletas)
     # Funcao que serializa os dados. Pega de model e converte em schema. Ela foi descontinuado. Utilizar agora o model_validate
     # return AtletaOut.from_orm()
     # neste caso, ele faz um for transformando cada atleta do atletaModel em um Atletaou (Transforma um model em um schema)
-    return [AtletaOut.model_validate(atleta) for atleta in atletas]
+    return atletas
+
+    # Funcionando antes da paginação
+    # atletas: list[AtletaOutResumido] = (await db_session.execute(select(AtletaModel))).scalars().all()
+    # print(atletas)
+    # # Funcao que serializa os dados. Pega de model e converte em schema. Ela foi descontinuado. Utilizar agora o model_validate
+    # # return AtletaOut.from_orm()
+    # # neste caso, ele faz um for transformando cada atleta do atletaModel em um Atletaou (Transforma um model em um schema)
+    # return [AtletaOut.model_validate(atleta) for atleta in atletas]
+
+
 
 
 
