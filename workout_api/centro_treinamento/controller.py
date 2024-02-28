@@ -2,6 +2,7 @@ from datetime import datetime
 from uuid import uuid4
 from fastapi import APIRouter, Body, HTTPException, status
 from pydantic import UUID4
+import sqlalchemy
 from workout_api.centro_treinamento.models import CentroTreinamentoModel
 from workout_api.centro_treinamento.schemas import CentroTreinamentoIn, CentroTreinamentoOut
 from sqlalchemy.future import select
@@ -23,14 +24,24 @@ async def post(
     
     # o dict está depreciado, então usaremos o model_dump, recomendado na documentacao
     # categoria_out = CategoriaOut(id=uuid4(), **categoria_in.dict())
-    print("------ chegou aqui ------")
     ct_out = CentroTreinamentoOut(id=uuid4(), **ct_in.model_dump())
     ct_model = CentroTreinamentoModel(**ct_out.model_dump())
-    print(ct_out)
-    print(ct_model.__dict__)
-    print("------ chegou aqui ------")
-    db_session.add(ct_model)
-    await db_session.commit()
+
+    try:
+        db_session.add(ct_model)
+        await db_session.commit()
+    except Exception as ex:
+        if isinstance(ex, sqlalchemy.exc.IntegrityError):
+            raise HTTPException(
+                status_code=status.HTTP_303_SEE_OTHER,
+                detail=f"Já existe um centro de treinamento cadastrado com o nome: {ct_model.nome}"
+            )
+
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Ocorreu um erro: {ex.__cause__}"
+        )
+
     return ct_out
 
 

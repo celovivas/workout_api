@@ -102,7 +102,7 @@ async def post(
         db_session.add(atleta_model)
         await db_session.commit()
     except Exception as ex:
-        if isinstance(sqlalchemy.exc.IntegrityError, ex):
+        if isinstance(ex, sqlalchemy.exc.IntegrityError):
             raise HTTPException(
                 status_code=status.HTTP_303_SEE_OTHER,
                 detail=f"Já existe um atleta cadastrado com o cpf: {atleta_model.cpf}"
@@ -112,7 +112,6 @@ async def post(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Ocorreu um erro: {ex.__cause__}"
         )
-    # breakpoint()
     return atleta_out
     pass
 

@@ -4,6 +4,7 @@ from fastapi import APIRouter, Body, HTTPException, Query, status
 from fastapi_pagination import Page
 from fastapi_pagination.ext.sqlalchemy import paginate 
 from pydantic import UUID4
+import sqlalchemy
 from workout_api.categorias.models import CategoriaModel
 from workout_api.categorias.schemas import CategoriaIn, CategoriaOut
 from sqlalchemy.future import select
@@ -63,8 +64,22 @@ async def post(
     print(categoria_out)
     print(categoria_model.__dict__)
     print("------ chegou aqui ------")
-    db_session.add(categoria_model)
-    await db_session.commit()
+
     # breakpoint()
+    try:
+        db_session.add(categoria_model)
+        await db_session.commit()
+    except Exception as ex:
+        if isinstance(ex, sqlalchemy.exc.IntegrityError):
+            raise HTTPException(
+                status_code=status.HTTP_303_SEE_OTHER,
+                detail=f"Já existe uma categoria com o nome: {categoria_model.nome}"
+            )
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Ocorreu um erro: {ex.__cause__}"
+        )
+
+
     # pass
     return categoria_out
